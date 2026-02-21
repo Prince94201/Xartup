@@ -6,6 +6,22 @@
 import { NextResponse } from "next/server";
 import { companies } from "../../../lib/mock-data";
 
+// Allow calling this API from a separately deployed frontend (Vite) app.
+// Set CORS_ALLOW_ORIGIN in Vercel env, e.g. https://xartup-work.vercel.app
+const ALLOW_ORIGIN = process.env.CORS_ALLOW_ORIGIN ?? "*";
+
+function withCors(res: NextResponse) {
+  res.headers.set("Access-Control-Allow-Origin", ALLOW_ORIGIN);
+  res.headers.set("Vary", "Origin");
+  res.headers.set("Access-Control-Allow-Methods", "GET,OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  return res;
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 204 }));
+}
+
 type SortBy = "name" | "founded" | "employees";
 
 type SortDir = "asc" | "desc";
@@ -78,10 +94,12 @@ export async function GET(req: Request) {
   const start = (safePage - 1) * limit;
   const data = filtered.slice(start, start + limit);
 
-  return NextResponse.json({
-    data,
-    total,
-    page: safePage,
-    totalPages,
-  });
+  return withCors(
+    NextResponse.json({
+      data,
+      total,
+      page: safePage,
+      totalPages,
+    })
+  );
 }

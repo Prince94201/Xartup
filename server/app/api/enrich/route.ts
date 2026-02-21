@@ -16,6 +16,20 @@ import type { EnrichmentResult } from "../../../lib/types";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+const ALLOW_ORIGIN = process.env.CORS_ALLOW_ORIGIN ?? "*";
+
+function withCors(res: NextResponse) {
+  res.headers.set("Access-Control-Allow-Origin", ALLOW_ORIGIN);
+  res.headers.set("Vary", "Origin");
+  res.headers.set("Access-Control-Allow-Methods", "POST,OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  return res;
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 204 }));
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => null)) as
@@ -25,11 +39,11 @@ export async function POST(req: Request) {
     const url = typeof body?.url === "string" ? body.url.trim() : "";
 
     if (!url) {
-      return NextResponse.json({ error: "URL is required" }, { status: 400 });
+      return withCors(NextResponse.json({ error: "URL is required" }, { status: 400 }));
     }
 
     if (!validateUrl(url)) {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+      return withCors(NextResponse.json({ error: "Invalid URL" }, { status: 400 }));
     }
 
     const jinaUrl = buildJinaUrl(url);
@@ -38,9 +52,11 @@ export async function POST(req: Request) {
     }).catch(() => null);
 
     if (!scrapeRes || !scrapeRes.ok) {
-      return NextResponse.json(
-        { error: "Failed to scrape website" },
-        { status: 502 }
+      return withCors(
+        NextResponse.json(
+          { error: "Failed to scrape website" },
+          { status: 502 }
+        )
       );
     }
 
@@ -75,9 +91,11 @@ Website content: [${scraped}]`;
     const parsed = safeParseJson(raw);
 
     if (!parsed) {
-      return NextResponse.json(
-        { error: "Failed to parse AI response" },
-        { status: 500 }
+      return withCors(
+        NextResponse.json(
+          { error: "Failed to parse AI response" },
+          { status: 500 }
+        )
       );
     }
 
@@ -94,7 +112,7 @@ Website content: [${scraped}]`;
       cached_at: now,
     };
 
-    return NextResponse.json(result);
+    return withCors(NextResponse.json(result));
   } catch (err) {
     // Prefer returning the Groq error message payload when available.
     const message =
@@ -103,6 +121,6 @@ Website content: [${scraped}]`;
         : err instanceof Error
           ? err.message
           : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return withCors(NextResponse.json({ error: message }, { status: 500 }));
   }
 }
