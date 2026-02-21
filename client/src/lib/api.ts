@@ -1,7 +1,7 @@
 import { Company, CompanyFilters, EnrichmentResult } from "./types";
 import { MOCK_COMPANIES } from "./mock-data";
 
-const API_BASE = "/api";
+const API_BASE = "https://xartup-api.vercel.app/api";
 const USE_MOCK = false; // Toggle to false when real API is available
 
 type CompaniesResponse = {
